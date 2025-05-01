@@ -26,21 +26,26 @@ load(
 def _get_env_var(ctx, name):
     return ctx.os.environ.get(name)
 
-def _get_json_file_content(
+def get_json_file_content(
         repository_ctx,
         url_to_sha256,
         mirrored_tars_url_to_sha256,
         json_file_name,
-        mirrored_tars_json_file_name):
+        mirrored_tars_json_file_name,
+        use_tar_file_env_var_name = "USE_CUDA_TAR_ARCHIVE_FILES"):
     use_cuda_tars = _get_env_var(
         repository_ctx,
-        "USE_CUDA_TAR_ARCHIVE_FILES",
+        use_tar_file_env_var_name,
     )
     (url, sha256) = url_to_sha256
-    (mirrored_tar_url, mirrored_tar_sha256) = mirrored_tars_url_to_sha256
+    if mirrored_tars_url_to_sha256:
+        (mirrored_tar_url, mirrored_tar_sha256) = mirrored_tars_url_to_sha256
+    else:
+        mirrored_tar_url = None
+        mirrored_tar_sha256 = None
     json_file = None
 
-    if use_cuda_tars:
+    if use_cuda_tars and mirrored_tar_url:
         json_tar_downloaded = repository_ctx.download(
             url = mirrored_tar_url,
             sha256 = mirrored_tar_sha256,
@@ -108,7 +113,7 @@ def _cuda_redist_json_impl(repository_ctx):
             mirrored_tars_url_to_sha256 = repository_ctx.attr.mirrored_tars_cuda_json_dict[cuda_version]
         else:
             mirrored_tars_url_to_sha256 = {}
-        cuda_redistributions = _get_json_file_content(
+        cuda_redistributions = get_json_file_content(
             repository_ctx,
             url_to_sha256 = repository_ctx.attr.cuda_json_dict[cuda_version],
             mirrored_tars_url_to_sha256 = mirrored_tars_url_to_sha256,
@@ -120,7 +125,7 @@ def _cuda_redist_json_impl(repository_ctx):
             mirrored_tars_url_to_sha256 = repository_ctx.attr.mirrored_tars_cudnn_json_dict[cudnn_version]
         else:
             mirrored_tars_url_to_sha256 = {}
-        cudnn_redistributions = _get_json_file_content(
+        cudnn_redistributions = get_json_file_content(
             repository_ctx,
             mirrored_tars_url_to_sha256 = mirrored_tars_url_to_sha256,
             url_to_sha256 = repository_ctx.attr.cudnn_json_dict[cudnn_version],
